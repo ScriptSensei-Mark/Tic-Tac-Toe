@@ -59,19 +59,36 @@ function isGameWon() {
     if (checkWinner(currentPlayer)) {
         drawWinningLine(winningCombo); // Verwende die gewinnende Kombination, um die Linie zu zeichnen
         setTimeout(function() {
-            alert(`Spieler ${currentPlayer} hat gewonnen!`);
+            message = `Spieler ${currentPlayer} hat gewonnen!`;
+            openPopUp(message)
             disableCells();
         }, 300);
         console.log('isGameWon completed');
     } else if (isGameDraw()) {
         setTimeout(function() {
-            alert('Spiel endet unentschieden!');
+            message = 'Spiel endet unentschieden!';
+            openPopUp(message);
             disableCells();
         }, 300);
     } else {
         currentPlayer = (currentPlayer === 'X' ? 'O' : 'X');
-        console.log('isGameWon not completed');
     }
+};
+
+
+// Funktion zum Anzeigen des Popup-Fensters mit einer Nachricht
+function openPopUp(message) {
+    const popup = document.getElementById('popup');
+    const popupMessage = document.getElementById('popup-message');
+    popupMessage.textContent = message;
+    popup.style.display = 'flex';
+};
+
+
+// Funktion zum Schließen des Popup-Fensters
+function closePopup() {
+    const popup = document.getElementById('popup');
+    popup.style.display = 'none';
 };
 
 
@@ -83,7 +100,8 @@ function disableCells() {
             cells[i].onclick = null;
         }
     }
-}
+};
+
 
 function isGameDraw() {
     return !fields.includes(null) && !checkWinner('X') && !checkWinner('O');
