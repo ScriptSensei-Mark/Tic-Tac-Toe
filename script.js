@@ -1,12 +1,26 @@
 let fields = Array(9).fill(null); // Verwende `Array(9).fill(null)`, um ein leeres Spielfeld zu erstellen
-
-let currentPlayer = 'x'; // Startspieler 'x'
+let currentPlayer = 'X'; // Startspieler 'X'
+let winner = null;
 let gameIsOver = false;
+let winningCombo = null;
+
+const WINNING_COMBOS = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+];
+
 
 // Initialisierungsfunktion
 function init() {
     render();
-}
+};
+
 
 // Rendert das Spielfeld
 function render() {
@@ -15,18 +29,20 @@ function render() {
     let boardHTML = '';
     for (let i = 0; i < fields.length; i++) {
         const field = fields[i];
-        const cellHTML = `<div class="cell" onclick="handleCellClick(${i})">${field === 'x' ? generateAnimatedCrossSVG() : (field === 'o' ? generateAnimatedCircleSVG() : '')}</div>`;
+        const cellHTML = `<div class="cell" onclick="handleCellClick(${i})">${field === 'X' ? generateAnimatedCrossSVG() : (field === 'O' ? generateAnimatedCircleSVG() : '')}</div>`;
         boardHTML += cellHTML;
     }
 
     board.innerHTML = boardHTML;
-}
+};
+
 
 // Rendert ein einzelnes Spielfeld
 function renderCell(index) {
     const cell = document.getElementsByClassName('cell')[index];
-    cell.innerHTML = (fields[index] === 'x' ? generateAnimatedCrossSVG() : generateAnimatedCircleSVG());
-}
+    cell.innerHTML = (fields[index] === 'X' ? generateAnimatedCrossSVG() : generateAnimatedCircleSVG());
+};
+
 
 // Behandelt den Klick auf ein Spielfeld
 function handleCellClick(index) {
@@ -35,24 +51,31 @@ function handleCellClick(index) {
         renderCell(index);
         isGameWon();
     }
-}
+};
+
 
 // Überprüft, ob das Spiel gewonnen wurde
 function isGameWon() {
-    setTimeout(function() {
-        if (checkWinner(currentPlayer)) {
+    if (checkWinner(currentPlayer)) {
+        drawWinningLine(winningCombo); // Verwende die gewinnende Kombination, um die Linie zu zeichnen
+        setTimeout(function() {
             alert(`Spieler ${currentPlayer} hat gewonnen!`);
-            endGame();
-        } else {
-            currentPlayer = (currentPlayer === 'x' ? 'o' : 'x');
-        }
-    }, 300);
-}
+            disableCells();
+        }, 300);
+        console.log('isGameWon completed');
+    } else if (isGameDraw()) {
+        setTimeout(function() {
+            alert('Spiel endet unentschieden!');
+            disableCells();
+        }, 300);
+    } else {
+        currentPlayer = (currentPlayer === 'X' ? 'O' : 'X');
+        console.log('isGameWon not completed');
+    }
+};
 
-// Beendet das Spiel
-function endGame() {
-    gameIsOver = true; // Setze das Spiel auf beendet
 
+function disableCells() {
     // Deaktiviere alle anderen Felder
     const cells = document.getElementsByClassName('cell');
     for (let i = 0; i < cells.length; i++) {
@@ -62,28 +85,71 @@ function endGame() {
     }
 }
 
+function isGameDraw() {
+    return !fields.includes(null) && !checkWinner('X') && !checkWinner('O');
+};
+
+
+// Beendet das Spiel
+function restartGame() {
+    gameIsOver = true; // Setze das Spiel auf beendet
+    winner = null;
+    winningCombo = null;
+    currentPlayer = 'X';
+    fields = Array(9).fill(null);
+    render()
+};
+
+
 // Überprüft, ob ein Spieler gewonnen hat
 function checkWinner(player) {
-    const winningCombos = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
-
-    for (const combo of winningCombos) {
+    for (const combo of WINNING_COMBOS) {
         const [a, b, c] = combo;
         if (fields[a] === player && fields[b] === player && fields[c] === player) {
+            winningCombo = combo; // Setze die gewinnende Kombination
+            winner = player;
             return true;
         }
     }
-
     return false;
-}
+};
+
+
+function drawWinningLine(combination) {
+    const lineColor = '#ffffff';
+    const lineWidth = 5;
+
+    const startCell = document.getElementsByClassName('cell')[combination[0]];
+    const endCell = document.getElementsByClassName('cell')[combination[2]];
+    const startRect = startCell.getBoundingClientRect();
+    const endRect = endCell.getBoundingClientRect();
+    const contentRect = document.getElementById('board').getBoundingClientRect();
+
+    const lineLength = Math.sqrt(
+        Math.pow(endRect.left - startRect.left, 2) + Math.pow(endRect.top - startRect.top, 2)
+    ) + 160;
+    const lineAngle = Math.atan2(endRect.top - startRect.top, endRect.left - startRect.left);
+
+    const line = document.createElement('div');
+    line.style.position = 'absolute';
+    line.style.width = `${lineLength}px`;
+    line.style.height = `${lineWidth +5}px`;
+    line.style.backgroundColor = lineColor;
+
+    // Berechne die neue Position des Startpunkts der Linie
+    const newStartX = startRect.left + (startRect.width / 2) - (160 / 2 * Math.cos(lineAngle));
+    const newStartY = startRect.top + (startRect.height / 2) - (160 / 2 * Math.sin(lineAngle));
+
+    line.style.top = `${newStartY - contentRect.top}px`;
+    line.style.left = `${newStartX - contentRect.left}px`;
+    line.style.transform = `rotate(${lineAngle}rad)`;
+    line.style.transformOrigin = 'top left';
+    // Klasse zuweisen
+    line.classList.add('winning-line');
+
+    document.getElementById('board').appendChild(line);
+};
+
 
 // Funktion zur Generierung des SVG für den Kreis
 function generateAnimatedCircleSVG() {
@@ -99,7 +165,8 @@ function generateAnimatedCircleSVG() {
         </svg>
     `;
     return svgCode;
-}
+};
+
 
 // Funktion zur Generierung des SVG für das Kreuz
 function generateAnimatedCrossSVG() {
